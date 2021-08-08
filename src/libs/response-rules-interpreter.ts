@@ -30,7 +30,8 @@ export class ResponseRulesInterpreter {
 
   /**
    * Choose the route response depending on the first fulfilled rule.
-   * If no rule has been fulfilled get the first route response.
+   * If no rule has been fulfilled get the default response.
+   * If no default response identified return first route response.
    */
   public chooseResponse(requestNumber: number): RouteResponse {
     if (this.randomResponse) {
@@ -61,7 +62,11 @@ export class ResponseRulesInterpreter {
       });
 
       if (response === undefined) {
-        response = this.routeResponses[0];
+        response = this.routeResponses.find((r) => r.default);
+
+        if (response === undefined) {
+          response = this.routeResponses[0];
+        }
       }
 
       return response;

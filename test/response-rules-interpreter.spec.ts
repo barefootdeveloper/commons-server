@@ -20,7 +20,8 @@ const routeResponse403: RouteResponse = {
   sendFileAsBody: false,
   disableTemplating: false,
   rules: [],
-  rulesOperator: 'OR'
+  rulesOperator: 'OR',
+  default: false
 };
 
 const routeResponseTemplate: RouteResponse = {
@@ -39,11 +40,32 @@ const routeResponseTemplate: RouteResponse = {
   sendFileAsBody: false,
   disableTemplating: false,
   rules: [],
-  rulesOperator: 'OR'
+  rulesOperator: 'OR',
+  default: false
+};
+
+const routeResponseDefault: RouteResponse = {
+  uuid: '',
+  body: 'default',
+  latency: 0,
+  statusCode: 200,
+  label: '',
+  headers: [
+    {
+      key: 'Content-Type',
+      value: 'text/plain'
+    }
+  ],
+  filePath: '',
+  sendFileAsBody: false,
+  disableTemplating: false,
+  rules: [],
+  rulesOperator: 'OR',
+  default: true
 };
 
 describe('Response rules interpreter', () => {
-  it('should return default response (no rule fulfilled)', () => {
+  it('should return first response (no rule fulfilled, no default)', () => {
     const request: Request = {
       header: function (headerName: string) {
         const headers = { 'Content-Type': 'application/json' };
@@ -61,6 +83,26 @@ describe('Response rules interpreter', () => {
     ).chooseResponse(1);
 
     expect(routeResponse.body).to.be.equal('unauthorized');
+  });
+
+  it('should return default response', () => {
+    const request: Request = {
+      header: function (headerName: string) {
+        const headers = { 'Content-Type': 'application/json' };
+
+        return headers[headerName];
+      },
+      body: ''
+    } as Request;
+
+    const routeResponse = new ResponseRulesInterpreter(
+      [routeResponse403, routeResponseTemplate, routeResponseDefault],
+      request,
+      false,
+      false
+    ).chooseResponse(1);
+
+    expect(routeResponse.body).to.be.equal('default');
   });
 
   it('should return default response if rule is invalid (missing target)', () => {
