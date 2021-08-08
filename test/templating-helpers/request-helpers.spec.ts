@@ -1,6 +1,16 @@
 import { expect } from 'chai';
 import { TemplateParser } from '../../src/libs/template-parser';
 
+const requestMock = {
+  get: function (headerName: string) {
+    const headers = {
+      'Test-Header': 'headervalue'
+    };
+
+    return headers[headerName];
+  }
+} as any;
+
 describe('Template parser', () => {
   describe('Helper: body', () => {
     it('should return number without quotes', () => {
@@ -105,6 +115,83 @@ describe('Template parser', () => {
     });
   });
 
+  describe('Helper: bodyRaw', () => {
+    it('should should return the number without quotes', () => {
+      const parseResult = TemplateParser(
+        "{{bodyRaw 'prop'}}",
+        {
+          bodyJSON: { prop: 1 }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('1');
+    });
+    it('should return an array without quotes', () => {
+      const parseResult = TemplateParser(
+        "{{bodyRaw 'prop'}}",
+        {
+          bodyJSON: { prop: [1, 2, 3] }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('1,2,3');
+    });
+    it('should return a boolean without quotes', () => {
+      const parseResult = TemplateParser(
+        "{{bodyRaw 'prop'}}",
+        {
+          bodyJSON: { prop: true }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('true');
+    });
+    it('should be usable with a each', () => {
+      const parseResult = TemplateParser(
+        "{{#each (bodyRaw 'myList')}}dolphin{{/each}}",
+        {
+          bodyJSON: {
+            prop: '1',
+            myList: [1, 2, 3],
+            boolean: true
+          }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphindolphindolphin');
+    });
+    it('should be usable within a if clause', () => {
+      const parseResult = TemplateParser(
+        "{{#if (bodyRaw 'boolean')}}dolphin{{/if}}",
+        {
+          bodyJSON: {
+            prop: '1',
+            myList: [1, 2, 3],
+            boolean: true
+          }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphin');
+    });
+    it('should return the default value in a each when no request body', () => {
+      const parseResult = TemplateParser(
+        "{{#each (bodyRaw 'dolphin' (array 1 2 3))}}dolphin{{/each}}",
+        {} as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphindolphindolphin');
+    });
+    it('should return the default value in a if clause when no request body', () => {
+      const parseResult = TemplateParser(
+        "{{#if (bodyRaw 'dolphin' true)}}dolphin{{/if}}",
+        {} as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphin');
+    });
+  });
+
   describe('Helper: queryParam', () => {
     it('should return number without quotes', () => {
       const parseResult = TemplateParser(
@@ -203,6 +290,95 @@ describe('Template parser', () => {
         {} as any
       );
       expect(parseResult).to.be.equal('"This is a \\"message\\" with quotes."');
+    });
+  });
+
+  describe('Helper: queryParamRaw', () => {
+    it('should return the number without quotes', () => {
+      const parseResult = TemplateParser(
+        "{{queryParamRaw 'param1'}}",
+        {
+          query: {
+            param1: '1',
+            param2: [1, 2, 3],
+            param3: true
+          }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('1');
+    });
+    it('should return an array without quotes', () => {
+      const parseResult = TemplateParser(
+        "{{queryParamRaw 'param2'}}",
+        {
+          query: {
+            param1: '1',
+            param2: [1, 2, 3],
+            param3: true
+          }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('1,2,3');
+    });
+    it('should return a boolean without quotes', () => {
+      const parseResult = TemplateParser(
+        "{{queryParamRaw 'param3'}}",
+        {
+          query: {
+            param1: '1',
+            param2: [1, 2, 3],
+            param3: true
+          }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('true');
+    });
+    it('should be usable with a each', () => {
+      const parseResult = TemplateParser(
+        "{{#each (queryParamRaw 'param2')}}dolphin{{/each}}",
+        {
+          query: {
+            param1: '1',
+            param2: [1, 2, 3],
+            param3: true
+          }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphindolphindolphin');
+    });
+    it('should be usable within a if clause', () => {
+      const parseResult = TemplateParser(
+        "{{#if (queryParamRaw 'param3')}}dolphin{{/if}}",
+        {
+          query: {
+            param1: '1',
+            param2: [1, 2, 3],
+            param3: true
+          }
+        } as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphin');
+    });
+    it('should return the default value in a each when no query', () => {
+      const parseResult = TemplateParser(
+        "{{#each (queryParamRaw 'dolphin' (array 1 2 3))}}dolphin{{/each}}",
+        {} as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphindolphindolphin');
+    });
+    it('should return the default value in a if clause when no request body', () => {
+      const parseResult = TemplateParser(
+        "{{#if (queryParam 'dolphin' true)}}dolphin{{/if}}",
+        {} as any,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('dolphin');
     });
   });
 
@@ -308,6 +484,40 @@ describe('Template parser', () => {
         } as any
       );
       expect(parseResult).to.be.equal('https://localhost:3001');
+    });
+  });
+
+  describe('Helper: header', () => {
+    it('should return the header value', () => {
+      const parseResult = TemplateParser(
+        "{{header 'Test-Header'}}",
+        requestMock,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('headervalue');
+    });
+
+    it('should return an empty string if no name provided', () => {
+      const parseResult = TemplateParser('{{header}}', requestMock, {} as any);
+      expect(parseResult).to.be.equal('');
+    });
+
+    it('should return a empty string if name not found', () => {
+      const parseResult = TemplateParser(
+        "{{header 'notfound'}}",
+        requestMock,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('');
+    });
+
+    it('should return a default value if provided and name not found', () => {
+      const parseResult = TemplateParser(
+        "{{header 'notfound' 'defaultvalue'}}",
+        requestMock,
+        {} as any
+      );
+      expect(parseResult).to.be.equal('defaultvalue');
     });
   });
 });
